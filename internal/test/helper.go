@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/maximicciullo/personal-finance-api/internal/controllers"
+	"github.com/maximicciullo/personal-finance-api/internal/middleware"
 	"github.com/maximicciullo/personal-finance-api/internal/repositories"
 	"github.com/maximicciullo/personal-finance-api/internal/services"
 	"github.com/stretchr/testify/assert"
@@ -29,6 +30,9 @@ type TestServer struct {
 func NewTestServer() *TestServer {
 	// Set Gin to test mode
 	gin.SetMode(gin.TestMode)
+
+	// Initialize logger for testing (suppress logs during tests)
+	middleware.InitLogger("test")
 
 	// Initialize repositories
 	transactionRepo := repositories.NewMemoryTransactionRepository()
@@ -56,13 +60,16 @@ func NewTestServer() *TestServer {
 	}
 }
 
-// setupTestRoutes configures routes for testing
+// setupTestRoutes configures routes for testing (minimal middleware)
 func setupTestRoutes(
 	healthController *controllers.HealthController,
 	transactionController *controllers.TransactionController,
 	reportController *controllers.ReportController,
 ) *gin.Engine {
 	router := gin.New()
+
+	// Minimal middleware for testing (no logging to avoid noise)
+	router.Use(gin.Recovery())
 
 	// Health check
 	router.GET("/health", healthController.HealthCheck)
