@@ -26,6 +26,8 @@ clean:
 test:
 	@echo "Running tests..."
 	go test -v ./internal/controllers
+	go test -v ./internal/services
+	go test -v ./internal/repositories
 
 deps:
 	@echo "Downloading dependencies..."
