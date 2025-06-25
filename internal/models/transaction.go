@@ -2,6 +2,17 @@ package models
 
 import "time"
 
+const (
+	TransactionTypeExpense = "expense"
+	TransactionTypeIncome  = "income"
+)
+
+const (
+	CurrencyARS = "ARS"
+	CurrencyUSD = "USD"
+	CurrencyEUR = "EUR"
+)
+
 type Transaction struct {
 	ID          int       `json:"id"`
 	Type        string    `json:"type"` // "expense" or "income"
@@ -30,14 +41,3 @@ type TransactionFilters struct {
 	FromDate *time.Time
 	ToDate   *time.Time
 }
-
-const (
-	TransactionTypeExpense = "expense"
-	TransactionTypeIncome  = "income"
-)
-
-const (
-	CurrencyARS = "ARS"
-	CurrencyUSD = "USD"
-	CurrencyEUR = "EUR"
-)
