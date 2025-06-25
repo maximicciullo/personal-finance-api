@@ -34,6 +34,15 @@ type CreateTransactionRequest struct {
 	Date        *string `json:"date,omitempty"` // Optional, format: YYYY-MM-DD
 }
 
+type UpdateTransactionRequest struct {
+	Type        *string  `json:"type,omitempty" binding:"omitempty,oneof=expense income"`
+	Amount      *float64 `json:"amount,omitempty" binding:"omitempty,gt=0"`
+	Currency    *string  `json:"currency,omitempty"`
+	Description *string  `json:"description,omitempty"`
+	Category    *string  `json:"category,omitempty"`
+	Date        *string  `json:"date,omitempty"` // Optional, format: YYYY-MM-DD
+}
+
 type TransactionFilters struct {
 	Type     string
 	Category string

@@ -226,6 +226,78 @@ func (c *TransactionController) DeleteTransaction(ctx *gin.Context) {
 	})
 }
 
+func (c *TransactionController) UpdateTransaction(ctx *gin.Context) {
+	idParam := ctx.Param("id")
+	
+	c.logger.Controller("UpdateTransaction started",
+		zap.String("transaction_id", idParam),
+	)
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.logger.Error("controller", "UpdateTransaction - invalid ID format", err,
+			zap.String("id_param", idParam),
+		)
+		
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad Request",
+			"message": "Invalid transaction ID",
+			"status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	var req models.UpdateTransactionRequest
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		c.logger.Error("controller", "UpdateTransaction - JSON binding failed", err,
+			zap.Any("request_body", req),
+		)
+		
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad Request",
+			"message": err.Error(),
+			"status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	c.logger.Controller("UpdateTransaction - request validated",
+		zap.Int("transaction_id", id),
+		zap.Any("update_request", req),
+	)
+
+	start := time.Now()
+	transaction, err := c.service.UpdateTransaction(id, &req)
+	duration := time.Since(start)
+
+	c.logger.Performance("UpdateTransaction service call", duration,
+		zap.Int("transaction_id", id),
+		zap.Bool("success", err == nil),
+	)
+
+	if err != nil {
+		c.logger.Error("controller", "UpdateTransaction - service error", err,
+			zap.Int("transaction_id", id),
+			zap.Any("request", req),
+		)
+		
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"error":   "Not Found",
+			"message": "Transaction not found",
+			"status":  http.StatusNotFound,
+		})
+		return
+	}
+
+	c.logger.Controller("UpdateTransaction completed successfully",
+		zap.Int("transaction_id", id),
+		zap.Duration("total_duration", duration),
+	)
+
+	ctx.JSON(http.StatusOK, transaction)
+}
+
 func (c *TransactionController) parseFilters(ctx *gin.Context) models.TransactionFilters {
 	filters := models.TransactionFilters{
 		Type:     ctx.Query("type"),

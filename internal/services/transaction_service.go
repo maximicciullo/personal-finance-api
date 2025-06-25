@@ -219,6 +219,131 @@ func (s *transactionService) DeleteTransaction(id int) error {
 	return nil
 }
 
+func (s *transactionService) UpdateTransaction(id int, req *models.UpdateTransactionRequest) (*models.Transaction, error) {
+	s.logger.Service("UpdateTransaction started",
+		zap.Int("transaction_id", id),
+	)
+
+	if id <= 0 {
+		err := errors.New("invalid transaction ID")
+		s.logger.Error("service", "UpdateTransaction - invalid ID", err,
+			zap.Int("transaction_id", id),
+		)
+		return nil, err
+	}
+
+	start := time.Now()
+
+	// Get existing transaction
+	existingTransaction, err := s.repo.GetByID(id)
+	if err != nil {
+		s.logger.Error("service", "UpdateTransaction - transaction not found", err,
+			zap.Int("transaction_id", id),
+		)
+		return nil, err
+	}
+
+	s.logger.Service("UpdateTransaction - existing transaction found",
+		zap.Int("transaction_id", id),
+		zap.String("current_type", existingTransaction.Type),
+		zap.Float64("current_amount", existingTransaction.Amount),
+	)
+
+	// Validate update request
+	if err := s.validateUpdateRequest(req); err != nil {
+		s.logger.Error("service", "UpdateTransaction - validation failed", err,
+			zap.Any("request", req),
+		)
+		return nil, err
+	}
+
+	// Create updated transaction with merged values
+	updatedTransaction := *existingTransaction
+
+	// Update only provided fields
+	if req.Type != nil {
+		updatedTransaction.Type = *req.Type
+		s.logger.Service("UpdateTransaction - updating type",
+			zap.String("old_type", existingTransaction.Type),
+			zap.String("new_type", *req.Type),
+		)
+	}
+
+	if req.Amount != nil {
+		updatedTransaction.Amount = *req.Amount
+		s.logger.Service("UpdateTransaction - updating amount",
+			zap.Float64("old_amount", existingTransaction.Amount),
+			zap.Float64("new_amount", *req.Amount),
+		)
+	}
+
+	if req.Currency != nil {
+		updatedTransaction.Currency = *req.Currency
+		s.logger.Service("UpdateTransaction - updating currency",
+			zap.String("old_currency", existingTransaction.Currency),
+			zap.String("new_currency", *req.Currency),
+		)
+	}
+
+	if req.Description != nil {
+		updatedTransaction.Description = *req.Description
+		s.logger.Service("UpdateTransaction - updating description")
+	}
+
+	if req.Category != nil {
+		updatedTransaction.Category = *req.Category
+		s.logger.Service("UpdateTransaction - updating category",
+			zap.String("old_category", existingTransaction.Category),
+			zap.String("new_category", *req.Category),
+		)
+	}
+
+	if req.Date != nil {
+		transactionDate, err := time.Parse("2006-01-02", *req.Date)
+		if err != nil {
+			s.logger.Error("service", "UpdateTransaction - date parsing failed", err,
+				zap.String("date_string", *req.Date),
+			)
+			return nil, errors.New("invalid date format, use YYYY-MM-DD")
+		}
+		updatedTransaction.Date = transactionDate
+		s.logger.Service("UpdateTransaction - updating date",
+			zap.Time("old_date", existingTransaction.Date),
+			zap.Time("new_date", transactionDate),
+		)
+	}
+
+	s.logger.Service("UpdateTransaction - calling repository",
+		zap.Int("transaction_id", id),
+		zap.Any("updated_transaction", updatedTransaction),
+	)
+
+	repoStart := time.Now()
+	err = s.repo.Update(&updatedTransaction)
+	repoDuration := time.Since(repoStart)
+
+	s.logger.Performance("UpdateTransaction repository call", repoDuration,
+		zap.Bool("success", err == nil),
+		zap.Int("transaction_id", id),
+	)
+
+	if err != nil {
+		s.logger.Error("service", "UpdateTransaction - repository error", err,
+			zap.Int("transaction_id", id),
+		)
+		return nil, err
+	}
+
+	totalDuration := time.Since(start)
+	s.logger.Service("UpdateTransaction completed successfully",
+		zap.Int("transaction_id", id),
+		zap.Duration("total_duration", totalDuration),
+		zap.Duration("repo_duration", repoDuration),
+	)
+
+	return &updatedTransaction, nil
+}
+
 func (s *transactionService) validateCreateRequest(req *models.CreateTransactionRequest) error {
 	s.logger.Debug("service", "Validating create request",
 		zap.Any("request", req),
@@ -241,5 +366,32 @@ func (s *transactionService) validateCreateRequest(req *models.CreateTransaction
 	}
 
 	s.logger.Debug("service", "Validation completed successfully")
+	return nil
+}
+
+func (s *transactionService) validateUpdateRequest(req *models.UpdateTransactionRequest) error {
+	s.logger.Debug("service", "Validating update request",
+		zap.Any("request", req),
+	)
+
+	if req.Type != nil {
+		if *req.Type != models.TransactionTypeExpense && *req.Type != models.TransactionTypeIncome {
+			return errors.New("type must be 'expense' or 'income'")
+		}
+	}
+
+	if req.Amount != nil && *req.Amount <= 0 {
+		return errors.New("amount must be positive")
+	}
+
+	if req.Description != nil && *req.Description == "" {
+		return errors.New("description cannot be empty")
+	}
+
+	if req.Category != nil && *req.Category == "" {
+		return errors.New("category cannot be empty")
+	}
+
+	s.logger.Debug("service", "Update validation completed successfully")
 	return nil
 }

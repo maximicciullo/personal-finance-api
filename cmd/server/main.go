@@ -96,6 +96,7 @@ func setupRoutes(
 			transactions.POST("", transactionController.CreateTransaction)
 			transactions.GET("", transactionController.GetTransactions)
 			transactions.GET("/:id", transactionController.GetTransaction)
+			transactions.PUT("/:id", transactionController.UpdateTransaction)
 			transactions.DELETE("/:id", transactionController.DeleteTransaction)
 		}
 
@@ -132,6 +133,7 @@ func printStartupInfo(cfg *config.Config) {
 	fmt.Printf("  POST   %s/api/v1/transactions\n", baseURL)
 	fmt.Printf("  GET    %s/api/v1/transactions\n", baseURL)
 	fmt.Printf("  GET    %s/api/v1/transactions/:id\n", baseURL)
+	fmt.Printf("  PUT    %s/api/v1/transactions/:id\n", baseURL)
 	fmt.Printf("  DELETE %s/api/v1/transactions/:id\n", baseURL)
 
 	// Report endpoints

@@ -8,6 +8,7 @@ type TransactionService interface {
 	CreateTransaction(req *models.CreateTransactionRequest) (*models.Transaction, error)
 	GetTransaction(id int) (*models.Transaction, error)
 	GetTransactions(filters models.TransactionFilters) ([]models.Transaction, error)
+	UpdateTransaction(id int, req *models.UpdateTransactionRequest) (*models.Transaction, error)
 	DeleteTransaction(id int) error
 }
 
